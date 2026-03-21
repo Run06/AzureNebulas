@@ -7,6 +7,7 @@ pip install -r requirements.txt
 
 # 2. Arrancar el servidor (crea la BD automáticamente al inicio)
 #Instalar si no se tiene (pip install uvicorn)
+
 uvicorn main:app --reload
 
 # 3. Acceder a la documentación interactiva de la API
