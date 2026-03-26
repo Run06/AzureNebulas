@@ -15,4 +15,5 @@ uvicorn main:app --reload
 http://localhost:8000/docs
 
 # 4. Abrir el frontend
-Abrir frontend/index.html directamente en el navegador
+!!! Versión bcrypt (pip install bcrypt==4.0.1). Por incompatibilidad con passlib.
+En PyCharm: Click derecho al fichero index.html -> Abrir con Browser (http://localhost:63342/AzureNebulas/frontend/index.html)
