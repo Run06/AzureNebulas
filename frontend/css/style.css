@@ -1,0 +1,174 @@
+/* Variables para facilitar cambios globales de diseño */
+:root {
+    --primary: #E58E26;
+    --primary-dark: #B36200;
+    --bg-dark: #1A1A1B;
+    --bg-card: #2C1810;
+    --text-light: #F5F5F5;
+    --text-muted: #D1D1D1;
+    --transition: all 0.3s ease;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-light);
+    line-height: 1.6;
+}
+
+/* Header & Nav */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 10%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    font-weight: bold;
+}
+
+.logo span {
+    color: var(--primary);
+}
+
+.nav-links {
+    list-style: none;
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: var(--text-light);
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.nav-links a:hover {
+    color: var(--primary);
+}
+
+.btn-login {
+    background-color: var(--primary);
+    padding: 0.6rem 1.2rem;
+    border-radius: 5px;
+    color: white !important;
+}
+
+/* Vistas de la SPA */
+#app {
+    min-height: 80vh;
+    padding: 2rem 10%;
+}
+
+/* Estilos de la Home */
+.hero {
+    text-align: center;
+    padding: 4rem 0;
+}
+
+.hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Grid de Películas */
+.catalog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.movie-card {
+    background: var(--bg-card);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+    border: 1px solid #3d2b24;
+}
+
+.movie-card:hover {
+    transform: translateY(-10px);
+    border-color: var(--primary);
+}
+
+.movie-img {
+    width: 100%;
+    height: 300px;
+    background: #444; /* Placeholder para imágenes */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.movie-info {
+    padding: 1rem;
+}
+
+.movie-info h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Formularios */
+.login-container {
+    max-width: 400px;
+    margin: 4rem auto;
+    background: var(--bg-card);
+    padding: 2rem;
+    border-radius: 10px;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.8rem;
+    border-radius: 5px;
+    border: none;
+    background: #3d2b24;
+    color: white;
+}
+
+.btn-submit {
+    width: 100%;
+    padding: 1rem;
+    background: var(--primary);
+    border: none;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.footer {
+    text-align: center;
+    padding: 2rem;
+    background: #111;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
