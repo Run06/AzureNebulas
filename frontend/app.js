@@ -1,101 +1,154 @@
-/**
- * LÓGICA DE LA SPA - AzureNebulas
- * Gestiona el enrutado y la carga de componentes.
- */
+const API_BASE = "http://localhost:8000";
 
-// 1. Simulación de "Base de Datos" (API Mock)
+// ======================
+// API
+// ======================
 const API = {
     getMovies: async () => {
-        // TODO Aquí iría el fetch('tu-api-backend/movies')
-        return [
-            { id: 1, title: "El Padrino", year: 1972, category: "Drama" },
-            { id: 2, title: "Pulp Fiction", year: 1994, category: "Crimen" },
-            { id: 3, title: "Interstellar", year: 2014, category: "Sci-Fi" },
-            { id: 4, title: "Blade Runner 2049", year: 2017, category: "Sci-Fi" }
-        ];
+        const res = await fetch(`${API_BASE}/movies/`);
+        return await res.json();
+    },
+
+    importMovie: async (query) => {
+        const res = await fetch(`${API_BASE}/movies/import?query=${query}`, {
+            method: "POST"
+        });
+        return await res.json();
+    },
+
+    login: async (email, password) => {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password })
+        });
+
+        return await res.json();
     }
 };
 
-// 2. Componentes de la Interfaz (Templates)
+// ======================
+// VISTAS
+// ======================
 const Views = {
+
     home: () => `
-        <section class="hero">
-            <h1>Bienvenido a AzureNebulas</h1>
-            <p>Tu refugio digital para el séptimo arte.</p>
-            <button class="btn-submit" style="width: auto; margin-top: 2rem; padding: 1rem 3rem;" onclick="router('catalogo')">
-                Explorar Catálogo
-            </button>
+        <section>
+            <h2>Bienvenido a Videoteca Paradiso</h2>
         </section>
     `,
-    catalogo: async () => {
-        const movies = await API.getMovies();
-        let movieHtml = movies.map(m => `
-            <div class="movie-card">
-                <div class="movie-img">🎬</div>
-                <div class="movie-info">
-                    <h3>${m.title}</h3>
-                    <p style="color: #E58E26">${m.category} | ${m.year}</p>
-                </div>
-            </div>
-        `).join('');
+
+    catalogo: () => {
+        const role = localStorage.getItem("role");
 
         return `
-            <h2>Catálogo Completo</h2>
-            <div class="catalog-grid">${movieHtml}</div>
+            <h2>Catálogo de películas</h2>
+
+            ${role == 1 ? `
+                <div style="margin-bottom:15px;">
+                    <input id="searchMovie" placeholder="Importar película (ej: Inception)" />
+                    <button onclick="importMovie()">Importar</button>
+                </div>
+            ` : `
+                <p style="color:red;">Solo administradores pueden importar películas</p>
+            `}
+
+            <div id="moviesContainer">Cargando...</div>
         `;
     },
+
     login: () => `
-        <div class="login-container">
-            <h2>Acceso Usuario</h2>
-            <form id="loginForm" onsubmit="event.preventDefault(); alert('Conectando con Backend...')">
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" placeholder="usuario@ejemplo.com" required>
-                </div>
-                <div class="form-group">
-                    <label>Contraseña</label>
-                    <input type="password" placeholder="••••••••" required>
-                </div>
-                <button type="submit" class="btn-submit">Entrar</button>
-            </form>
-        </div>
+        <h2>Login</h2>
+
+        <input id="email" placeholder="Email">
+        <input id="password" type="password" placeholder="Password">
+
+        <button onclick="loginUser()">Entrar</button>
+
+        <p id="loginMsg"></p>
     `
 };
 
-// 3. El Enrutador (Router)
-async function router(route) {
-    const appContainer = document.getElementById('app');
+// ======================
+// RENDER PELÍCULAS
+// ======================
+async function renderMovies() {
+    const movies = await API.getMovies();
 
-    // Mostramos un pequeño loader visual
-    appContainer.innerHTML = '<p style="text-align:center;">Cargando...</p>';
+    document.getElementById("moviesContainer").innerHTML = `
+        <div class="grid">
+            ${movies.map(m => `
+                <div class="card">
+                    <h3>${m.titulo}</h3>
+                    <p>${m.anio_produccion ?? ''}</p>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
 
-    // Seleccionamos la vista correspondiente
-    switch (route) {
-        case 'home':
-            appContainer.innerHTML = Views.home();
-            break;
-        case 'catalogo':
-            appContainer.innerHTML = await Views.catalogo();
-            break;
-        case 'login':
-            appContainer.innerHTML = Views.login();
-            break;
-        default:
-            appContainer.innerHTML = Views.home();
+// ======================
+// LOGIN
+// ======================
+async function loginUser() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    const data = await API.login(email, password);
+
+    if (data.access_token) {
+        localStorage.setItem("token", data.access_token);
+        localStorage.setItem("role", data.role);
+
+        document.getElementById("loginMsg").innerText = "✔ Login correcto";
+    } else {
+        document.getElementById("loginMsg").innerText = "❌ Error login";
     }
 }
 
-// 4. Inicialización y Eventos
-document.addEventListener('DOMContentLoaded', () => {
-    // Carga inicial
-    router('home');
+// ======================
+// IMPORTAR PELÍCULA (ADMIN)
+// ======================
+async function importMovie() {
+    const query = document.getElementById("searchMovie").value;
 
-    // Listener para los enlaces de navegación
-    document.querySelectorAll('[data-link]').forEach(link => {
-        link.addEventListener('click', (e) => {
+    await API.importMovie(query);
+
+    alert("Película importada");
+
+    loadRoute("catalogo");
+}
+
+// ======================
+// ROUTER SPA
+// ======================
+async function loadRoute(route) {
+    const app = document.getElementById("app");
+
+    if (route === "home") {
+        app.innerHTML = Views.home();
+    }
+
+    if (route === "catalogo") {
+        app.innerHTML = Views.catalogo();
+        setTimeout(renderMovies, 100);
+    }
+
+    if (route === "login") {
+        app.innerHTML = Views.login();
+    }
+}
+
+// ======================
+// INIT
+// ======================
+document.addEventListener("DOMContentLoaded", () => {
+    loadRoute("home");
+
+    document.querySelectorAll("[data-link]").forEach(el => {
+        el.addEventListener("click", (e) => {
             e.preventDefault();
-            const route = e.target.getAttribute('data-link');
-            router(route);
+            loadRoute(e.target.dataset.link);
         });
     });
 });

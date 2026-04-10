@@ -1,7 +1,9 @@
 from fastapi import FastAPI
+from app.database import Base, engine
+from app.routes import movies, auth
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, movies
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
@@ -13,9 +15,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router, prefix="/api/auth")
-app.include_router(movies.router, prefix="/api/movies")
+app.include_router(movies.router)
+app.include_router(auth.router)
 
 @app.get("/")
 def root():
-    return {"message": "API Videoteca funcionando"}
+    return {"msg": "API funcionando"}
