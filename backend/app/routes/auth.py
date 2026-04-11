@@ -3,9 +3,13 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models.user import Usuario
 from app.utils.security import verify_password, create_token
+from app.schemas.auth import LoginRequest  # 👈 IMPORTANTE
 
 router = APIRouter(prefix="/auth")
 
+# ======================
+# DB DEPENDENCY
+# ======================
 def get_db():
     db = SessionLocal()
     try:
@@ -13,13 +17,22 @@ def get_db():
     finally:
         db.close()
 
+# ======================
+# LOGIN (CORREGIDO)
+# ======================
 @router.post("/login")
-def login(email: str, password: str, db: Session = Depends(get_db)):
-    user = db.query(Usuario).filter(Usuario.email == email).first()
+def login(data: LoginRequest, db: Session = Depends(get_db)):
+    # Buscar usuario
+    user = db.query(Usuario).filter(Usuario.email == data.email).first()
 
-    if not user or not verify_password(password, user.password_hash):
+    # Validar credenciales
+    if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
 
+    # Crear token
     token = create_token({"sub": user.email})
-    return {"access_token": token,
-            "role": user.id_tipo_usuario}
+
+    return {
+        "access_token": token,
+        "role": user.id_tipo_usuario
+    }
