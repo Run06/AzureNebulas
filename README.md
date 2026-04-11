@@ -4,7 +4,7 @@ Proyecto grupal para la asignatura de Gestión de Proyectos del grado en Ingenie
 # 1. Instalar dependencias
 pip install -r requirements.txt
 
-# 2. Instalar dependencias
+# 2. Crear nueva BD, si no está creada
 cd backend
 
 py init_db.py      (Crear base de datos vacía)
