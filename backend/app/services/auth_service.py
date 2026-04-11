@@ -17,7 +17,7 @@ def create_user(db: Session, data):
         email=data.email,
         nombre_usuario=data.nombre_usuario,
         password_hash=hash_password(data.password),
-        id_tipo_usuario=1  # por defecto
+        id_tipo_usuario=0  # por defecto
     )
 
     db.add(user)

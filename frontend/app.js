@@ -97,10 +97,12 @@ const Views = {
     login: () => `
         <h2>Login</h2>
     
-        <input id="email" placeholder="Email">
-        <input id="password" type="password" placeholder="Password">
+        <form onsubmit="event.preventDefault(); loginUser();">
+            <input id="email" type="email" placeholder="Email" required>
+            <input id="password" type="password" placeholder="Password" required>
     
-        <button onclick="loginUser()">Entrar</button>
+            <button type="submit">Entrar</button>
+        </form>
     
         <p id="loginMsg"></p>
     
@@ -112,13 +114,15 @@ const Views = {
     register: () => `
         <h2>Registro</h2>
     
-        <input id="nombre" placeholder="Nombre">
-        <input id="apellidos" placeholder="Apellidos">
-        <input id="username" placeholder="Usuario">
-        <input id="email" placeholder="Email">
-        <input id="password" type="password" placeholder="Password">
+        <form onsubmit="event.preventDefault(); registerUser();">
+            <input id="nombre" placeholder="Nombre" required>
+            <input id="apellidos" placeholder="Apellidos" required>
+            <input id="username" placeholder="Usuario" required>
+            <input id="email" type="email" placeholder="Email" required>
+            <input id="password" type="password" placeholder="Password" required>
     
-        <button onclick="registerUser()">Registrarse</button>
+            <button type="submit">Registrarse</button>
+        </form>
     
         <p id="registerMsg"></p>
     `,
