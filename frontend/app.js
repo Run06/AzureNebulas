@@ -30,6 +30,16 @@ const API = {
         return await res.json();
     },
 
+    updateMovie: async (id, data) => {
+        const res = await fetch(`${API_BASE}/movies/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+
+        return await res.json();
+    },
+
     login: async (email, password) => {
         const res = await fetch(`${API_BASE}/auth/login`, {
             method: "POST",
@@ -186,8 +196,8 @@ async function renderMovies(disponible = true) {
                     <p>${m.anio_produccion ?? ''}</p>
 
                     ${role == 1 ? `
-                        <button onclick="toggleDisponible(${m.id_pelicula}, ${!m.disponible})">
-                            ${m.disponible ? "Dar de baja" : "Dar de alta"}
+                        <button onclick="editMovie(${m.id_pelicula}, '${m.titulo}', ${m.anio_produccion}, ${m.precio_alquiler})">
+                            Editar
                         </button>
                     ` : ``}
                 </div>
@@ -196,6 +206,26 @@ async function renderMovies(disponible = true) {
     `;
 }
 
+async function editMovie(id, titulo, anio, precio) {
+    const nuevoTitulo = prompt("Nuevo título:", titulo);
+    const nuevoAnio = prompt("Nuevo año:", anio);
+    const nuevoPrecio = prompt("Nuevo precio:", precio);
+
+    const body = {
+        titulo: nuevoTitulo,
+        anio_produccion: Number(nuevoAnio),
+        precio_alquiler: Number(nuevoPrecio)
+    };
+
+    const res = await API.updateMovie(id, body);
+
+    if (res.message) {
+        alert("Película actualizada");
+        renderMovies(true);
+    } else {
+        alert(res.detail || "Error");
+    }
+}
 // ======================
 // ADMIN DROPDOWNS
 // ======================

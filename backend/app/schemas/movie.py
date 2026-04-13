@@ -10,3 +10,10 @@ class MovieResponse(MovieBase):
 
     class Config:
         orm_mode = True
+
+from typing import Optional
+
+class MovieUpdate(BaseModel):
+    titulo: Optional[str] = None
+    anio_produccion: Optional[int] = None
+    precio_alquiler: Optional[float] = None
