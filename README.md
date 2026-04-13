@@ -2,8 +2,6 @@
 Proyecto grupal para la asignatura de Gestión de Proyectos del grado en Ingeniería Informática de Gestión y Sistemas de Información en la EHU.
 
 # 1. Instalar dependencias
-cd backend
-
 pip install -r requirements.txt
 
 # 2. Arrancar el servidor (crea la BD automáticamente al inicio)
