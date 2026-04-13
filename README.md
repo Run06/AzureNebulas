@@ -5,12 +5,6 @@ Proyecto grupal para la asignatura de Gestión de Proyectos del grado en Ingenie
 
 git clone EnlaceDelRepositorio
 
-cd AzureNebulas
-
-python3 -m venv venv
-
-source venv/bin/activate
-
 pip install -r requirements.txt
 
 # 2. Arrancar el servidor (crea la BD automáticamente al inicio)
