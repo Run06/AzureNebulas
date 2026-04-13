@@ -2,8 +2,13 @@
 Proyecto grupal para la asignatura de Gestión de Proyectos del grado en Ingeniería Informática de Gestión y Sistemas de Información en la EHU.
 
 # 1. Instalar dependencias
-
 git clone EnlaceDelRepositorio
+
+cd AzureNebulas
+
+python3 -m venv venv
+
+source venv/bin/activate
 
 pip install -r requirements.txt
 
