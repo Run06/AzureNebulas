@@ -4,15 +4,29 @@ const API_BASE = "http://localhost:8000";
 // API
 // ======================
 const API = {
-    getMovies: async () => {
-        const res = await fetch(`${API_BASE}/movies/`);
-        return await res.json();
+    getMovies: async (disponible = true) => {
+        try {
+            const res = await fetch(`${API_BASE}/movies/?disponible=${disponible}`);
+
+            if (!res.ok) {
+                console.error("Error API movies:", res.status);
+                return [];
+            }
+
+            return await res.json();
+        } catch (err) {
+            console.error("Fetch error movies:", err);
+            return [];
+        }
     },
 
-    importMovie: async (query) => {
-        const res = await fetch(`${API_BASE}/movies/import?query=${query}`, {
-            method: "POST"
+    toggleDisponible: async (id, disponible) => {
+        const res = await fetch(`${API_BASE}/movies/${id}/disponibilidad`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ disponible })
         });
+
         return await res.json();
     },
 
@@ -82,13 +96,22 @@ const Views = {
             <h2>Catálogo de películas</h2>
 
             ${role == 1 ? `
-                <div style="margin-bottom:15px;">
-                    <input id="searchMovie" placeholder="Importar película (ej: Inception)" />
-                    <button onclick="importMovie()">Importar</button>
+                <div style="display:flex; gap:40px; margin-bottom:20px;">
+
+                    <div>
+                        <h4>Películas disponibles</h4>
+                        <select id="selectDisponibles"></select>
+                        <button onclick="darDeBaja()">Dar de baja</button>
+                    </div>
+
+                    <div>
+                        <h4>Películas no disponibles</h4>
+                        <select id="selectNoDisponibles"></select>
+                        <button onclick="darDeAlta()">Dar de alta</button>
+                    </div>
+
                 </div>
-            ` : `
-                <p style="color:red;">Solo administradores pueden importar películas</p>
-            `}
+            ` : ``}
 
             <div id="moviesContainer">Cargando...</div>
         `;
@@ -96,47 +119,47 @@ const Views = {
 
     login: () => `
         <h2>Login</h2>
-    
+
         <form onsubmit="event.preventDefault(); loginUser();">
             <input id="email" type="email" placeholder="Email" required>
             <input id="password" type="password" placeholder="Password" required>
-    
+
             <button type="submit">Entrar</button>
         </form>
-    
+
         <p id="loginMsg"></p>
-    
+
         <p>¿No tienes cuenta? 
-            <a href="#" onclick="loadRoute('register')">Regístrate</a>
+            <a href="#" data-link="register">Regístrate</a>
         </p>
     `,
 
     register: () => `
         <h2>Registro</h2>
-    
+
         <form onsubmit="event.preventDefault(); registerUser();">
             <input id="nombre" placeholder="Nombre" required>
             <input id="apellidos" placeholder="Apellidos" required>
             <input id="username" placeholder="Usuario" required>
             <input id="email" type="email" placeholder="Email" required>
             <input id="password" type="password" placeholder="Password" required>
-    
+
             <button type="submit">Registrarse</button>
         </form>
-    
+
         <p id="registerMsg"></p>
     `,
 
     perfil: () => `
         <h2>Mi perfil</h2>
-    
+
         <input id="nombre" placeholder="Nombre">
         <input id="apellidos" placeholder="Apellidos">
         <input id="username" placeholder="Usuario">
         <input id="email" placeholder="Email">
-    
+
         <button onclick="updateProfile()">Guardar cambios</button>
-    
+
         <p id="perfilMsg"></p>
     `
 };
@@ -144,19 +167,81 @@ const Views = {
 // ======================
 // RENDER PELÍCULAS
 // ======================
-async function renderMovies() {
-    const movies = await API.getMovies();
+async function renderMovies(disponible = true) {
+    const movies = await API.getMovies(disponible);
+    const role = localStorage.getItem("role");
 
-    document.getElementById("moviesContainer").innerHTML = `
+    const container = document.getElementById("moviesContainer");
+
+    if (!movies || movies.length === 0) {
+        container.innerHTML = "<p>No hay películas</p>";
+        return;
+    }
+
+    container.innerHTML = `
         <div class="grid">
             ${movies.map(m => `
                 <div class="card">
                     <h3>${m.titulo}</h3>
                     <p>${m.anio_produccion ?? ''}</p>
+
+                    ${role == 1 ? `
+                        <button onclick="toggleDisponible(${m.id_pelicula}, ${!m.disponible})">
+                            ${m.disponible ? "Dar de baja" : "Dar de alta"}
+                        </button>
+                    ` : ``}
                 </div>
             `).join('')}
         </div>
     `;
+}
+
+// ======================
+// ADMIN DROPDOWNS
+// ======================
+async function loadDropdowns() {
+    const disponibles = await API.getMovies(true);
+    const noDisponibles = await API.getMovies(false);
+
+    const sel1 = document.getElementById("selectDisponibles");
+    const sel2 = document.getElementById("selectNoDisponibles");
+
+    if (sel1) {
+        sel1.innerHTML = disponibles.map(m =>
+            `<option value="${m.id_pelicula}">${m.titulo}</option>`
+        ).join('');
+    }
+
+    if (sel2) {
+        sel2.innerHTML = noDisponibles.map(m =>
+            `<option value="${m.id_pelicula}">${m.titulo}</option>`
+        ).join('');
+    }
+}
+
+async function darDeBaja() {
+    const id = document.getElementById("selectDisponibles").value;
+
+    await API.toggleDisponible(id, false);
+
+    alert("Película dada de baja");
+
+    await refreshAdmin();
+}
+
+async function darDeAlta() {
+    const id = document.getElementById("selectNoDisponibles").value;
+
+    await API.toggleDisponible(id, true);
+
+    alert("Película dada de alta");
+
+    await refreshAdmin();
+}
+
+async function refreshAdmin() {
+    await loadDropdowns();
+    renderMovies(true);
 }
 
 // ======================
@@ -169,17 +254,17 @@ async function loginUser() {
     const data = await API.login(email, password);
 
     if (data.access_token) {
-    localStorage.setItem("token", data.access_token);
+        localStorage.setItem("token", data.access_token);
 
-    const me = await API.getMe();
-    localStorage.setItem("role", me.role);
+        const me = await API.getMe();
+        localStorage.setItem("role", me.role);
 
-    updateNavbar(); // ✅ AQUÍ EXACTAMENTE
+        updateNavbar();
 
-    document.getElementById("loginMsg").innerText = "✔ Login correcto";
+        document.getElementById("loginMsg").innerText = "✔ Login correcto";
 
-    setTimeout(() => loadRoute("catalogo"), 800);
-} else {
+        setTimeout(() => loadRoute("catalogo"), 800);
+    } else {
         document.getElementById("loginMsg").innerText = "❌ Error login";
     }
 }
@@ -191,8 +276,7 @@ function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
 
-    updateNavbar(); // ✅ AQUÍ
-
+    updateNavbar();
     loadRoute("home");
 }
 
@@ -219,7 +303,7 @@ async function registerUser() {
 }
 
 // ======================
-// UPDATENAVBAR
+// NAVBAR
 // ======================
 function updateNavbar() {
     const token = localStorage.getItem("token");
@@ -246,17 +330,16 @@ function updateNavbar() {
         `;
     }
 
-    // 🔁 Reasignar eventos SPA
     document.querySelectorAll("[data-link]").forEach(el => {
         el.addEventListener("click", (e) => {
             e.preventDefault();
-            loadRoute(e.target.dataset.link);
+            loadRoute(e.currentTarget.dataset.link);
         });
     });
 }
 
 // ======================
-// LOADPROFILE
+// PERFIL
 // ======================
 async function loadProfile() {
     const me = await API.getMe();
@@ -267,9 +350,6 @@ async function loadProfile() {
     document.getElementById("email").value = me.email || "";
 }
 
-// ======================
-// UPDATEPROFILE
-// ======================
 async function updateProfile() {
     const body = {
         nombre: document.getElementById("nombre").value,
@@ -280,39 +360,18 @@ async function updateProfile() {
 
     const res = await API.updateMe(body);
 
-    console.log(res); // 👈 DEBUG (MUY IMPORTANTE)
-
-    if (res.message) {
-        document.getElementById("perfilMsg").innerText = "✔ Datos actualizados";
-    } else {
-        document.getElementById("perfilMsg").innerText =
-            typeof res.detail === "object"
-                ? JSON.stringify(res.detail)
-                : res.detail || "Error";
-    }
+    document.getElementById("perfilMsg").innerText =
+        res.message ? "✔ Datos actualizados" :
+        (typeof res.detail === "object" ? JSON.stringify(res.detail) : res.detail);
 }
 
 // ======================
-// IMPORTAR PELÍCULA (ADMIN)
-// ======================
-async function importMovie() {
-    const query = document.getElementById("searchMovie").value;
-
-    await API.importMovie(query);
-
-    alert("Película importada");
-
-    loadRoute("catalogo");
-}
-
-// ======================
-// ROUTER SPA
+// ROUTER
 // ======================
 async function loadRoute(route) {
     const app = document.getElementById("app");
     const token = localStorage.getItem("token");
 
-    // 🔒 PROTECCIÓN
     const protectedRoutes = ["catalogo", "perfil"];
 
     if (protectedRoutes.includes(route) && !token) {
@@ -320,27 +379,27 @@ async function loadRoute(route) {
         return loadRoute("login");
     }
 
-    if (route === "home") {
-        app.innerHTML = Views.home();
-    }
+    if (route === "home") app.innerHTML = Views.home();
 
     if (route === "catalogo") {
         app.innerHTML = Views.catalogo();
-        setTimeout(renderMovies, 100);
+
+        setTimeout(async () => {
+            await renderMovies(true);
+            await loadDropdowns();
+        }, 100);
     }
 
-    if (route === "login") {
-        app.innerHTML = Views.login();
-    }
+    if (route === "login") app.innerHTML = Views.login();
 
-    if (route === "register") {
-        app.innerHTML = Views.register();
-    }
+    if (route === "register") app.innerHTML = Views.register();
 
     if (route === "perfil") {
         app.innerHTML = Views.perfil();
         setTimeout(loadProfile, 100);
     }
+
+    updateNavbar();
 }
 
 // ======================

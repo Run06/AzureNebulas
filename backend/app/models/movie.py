@@ -11,3 +11,4 @@ class Pelicula(Base):
     numero_copias_disponibles = Column(Integer)
     precio_alquiler = Column(Float)
     activa = Column(Boolean, default=True)
+    disponible = Column(Boolean, default=True)
