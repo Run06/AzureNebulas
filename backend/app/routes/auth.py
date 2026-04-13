@@ -104,3 +104,49 @@ def update_me(
         raise HTTPException(status_code=500, detail=f"Error en base de datos: {str(e)}")
 
     return {"message": "Usuario actualizado"}
+
+
+# ======================
+# GET TODOS LOS USUARIOS (SOLO ADMIN)
+# ======================
+@router.get("/users")
+def get_all_users(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    if user.id_tipo_usuario != 1:
+        raise HTTPException(status_code=403, detail="Acceso denegado: Se requiere rol de administrador")
+
+    return db.query(Usuario).all()
+
+
+# ======================
+# EDITAR CUALQUIER USUARIO (SOLO ADMIN)
+# ======================
+@router.put("/users/{user_id}")
+def update_user_by_admin(
+        user_id: int,
+        data: UpdateUser,
+        current_user=Depends(get_current_user),
+        db: Session = Depends(get_db)
+):
+    if current_user.id_tipo_usuario != 1:
+        raise HTTPException(status_code=403, detail="Acceso denegado: Se requiere rol de administrador")
+
+    target_user = db.query(Usuario).filter(Usuario.id_usuario == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if data.nombre is not None:
+        target_user.nombre = data.nombre
+    if data.apellidos is not None:
+        target_user.apellidos = data.apellidos
+    if data.email is not None:
+        target_user.email = data.email
+    if data.nombre_usuario is not None:
+        target_user.nombre_usuario = data.nombre_usuario
+
+    try:
+        db.commit()
+        db.refresh(target_user)
+        return {"message": "Usuario actualizado por el Administrador"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error en base de datos: {str(e)}")

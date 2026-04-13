@@ -67,3 +67,26 @@ def update_movie(movie_id: int, data: MovieUpdate, db: Session = Depends(get_db)
     db.refresh(movie)
 
     return {"message": "Película actualizada", "movie": movie}
+
+from pydantic import BaseModel
+
+class MovieCreate(BaseModel):
+    titulo: str
+    anio_produccion: int
+    precio_alquiler: float
+
+# ======================
+# CREATE MOVIE (ADMIN)
+# ======================
+@router.post("/")
+def create_movie(data: MovieCreate, db: Session = Depends(get_db)):
+    nueva_pelicula = Pelicula(
+        titulo=data.titulo,
+        anio_produccion=data.anio_produccion,
+        precio_alquiler=data.precio_alquiler,
+        disponible=True # Por defecto entran disponibles
+    )
+    db.add(nueva_pelicula)
+    db.commit()
+    db.refresh(nueva_pelicula)
+    return {"message": "Película añadida", "movie": nueva_pelicula}
