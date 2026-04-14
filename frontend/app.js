@@ -72,7 +72,6 @@ const API = {
         });
         return await res.json();
     },
-    // Nuevos endpoints para Admins
     getAllUsers: async () => {
         const token = localStorage.getItem("token");
         const res = await fetch(`${API_BASE}/auth/users`, {
@@ -94,38 +93,83 @@ const API = {
     },
     toggleView: async (id) => {
         const token = localStorage.getItem("token");
-
         const res = await fetch(`${API_BASE}/movies/${id}/toggle-view`, {
             method: "POST",
-            headers: {
-                "Authorization": `Bearer ${token}`
-            }
+            headers: { "Authorization": `Bearer ${token}` }
         });
-
         return await res.json();
     },
-
     getMyViews: async () => {
         const token = localStorage.getItem("token");
-
         const res = await fetch(`${API_BASE}/movies/mis-visualizaciones`, {
-            headers: {
-                "Authorization": `Bearer ${token}`
-            }
+            headers: { "Authorization": `Bearer ${token}` }
         });
-
+        return await res.json();
+    },
+    getUserViews: async (userId) => {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE}/movies/user/${userId}/visualizaciones`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
         return await res.json();
     },
 
-    getUserViews: async (userId) => {
+    // --- NUEVOS MÉTODOS DE LISTAS ---
+    getLists: async () => {
         const token = localStorage.getItem("token");
-
-        const res = await fetch(`${API_BASE}/movies/user/${userId}/visualizaciones`, {
-            headers: {
-                "Authorization": `Bearer ${token}`
-            }
+        const res = await fetch(`${API_BASE}/lists/`, {
+            headers: { "Authorization": `Bearer ${token}` }
         });
-
+        return await res.json();
+    },
+    createList: async (data) => {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE}/lists/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify(data)
+        });
+        return await res.json();
+    },
+    updateList: async (id, data) => {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE}/lists/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify(data)
+        });
+        return await res.json();
+    },
+    deleteList: async (id) => {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE}/lists/${id}`, {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        return await res.json();
+    },
+    getListMovies: async (id) => {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE}/lists/${id}/movies`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        return await res.json();
+    },
+    addMovieToList: async (listId, movieId) => {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE}/lists/${listId}/movies`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({ id_pelicula: movieId })
+        });
+        return await res.json();
+    },
+    removeMovieFromList: async (listId, movieId) => {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE}/lists/${listId}/movies/${movieId}`, {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
         return await res.json();
     }
 };
@@ -201,6 +245,20 @@ const Views = {
     misVisualizaciones: () => `
         <h2>Mis películas vistas</h2>
         <div id="viewsContainer">Cargando...</div>
+    `,
+    // --- NUEVAS VISTAS DE LISTAS ---
+    listas: () => `
+        <h2>Mis Listas</h2>
+        <button onclick="showListForm()" style="background-color: #28a745; color: white; margin-bottom: 20px;">+ Crear Nueva Lista</button>
+        <div id="listsContainer">Cargando listas...</div>
+    `,
+    listaDetalle: (nombreLista) => `
+        <h2>Detalle: ${nombreLista}</h2>
+        <div style="margin-bottom:20px;">
+            <button onclick="loadRoute('listas')" style="background-color: #6c757d; color: white;">Volver a Listas</button>
+            <button onclick="showAddMovieToListForm()" style="background-color: #007bff; color: white;">+ Añadir Película a esta lista</button>
+        </div>
+        <div id="listMoviesContainer">Cargando películas de la lista...</div>
     `
 };
 
@@ -279,7 +337,6 @@ async function saveMovie(id) {
     const anio = parseInt(document.getElementById("modAnio").value);
     const precio = parseFloat(document.getElementById("modPrecio").value);
 
-    // VALIDACIONES
     if (!titulo) return alert("El título es obligatorio.");
     if (precio < 0) return alert("El precio no puede ser negativo.");
 
@@ -416,6 +473,150 @@ async function refreshAdmin() {
 }
 
 // ======================
+// LÓGICA DE LISTAS
+// ======================
+async function renderLists() {
+    const lists = await API.getLists();
+    const container = document.getElementById("listsContainer");
+
+    if (!lists || lists.length === 0) {
+        container.innerHTML = "<p>No tienes listas creadas.</p>";
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="grid">
+            ${lists.map(l => `
+                <div class="card">
+                    <h3>${l.nombre}</h3>
+                    <p>${l.descripcion || 'Sin descripción'}</p>
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <button onclick="openListDetail(${l.id}, '${l.nombre.replace(/'/g, "\\'")}')" style="background:#17a2b8; color:white;">Ver</button>
+                        <button onclick="showListForm(${l.id}, '${l.nombre.replace(/'/g, "\\'")}', '${(l.descripcion || '').replace(/'/g, "\\'")}')">Editar</button>
+                        <button onclick="deleteUserList(${l.id})" style="background:#dc3545; color:white;">Borrar</button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function showListForm(id = null, nombre = '', descripcion = '') {
+    const existing = document.getElementById("customModal");
+    if (existing) existing.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "customModal";
+    modal.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000;";
+
+    modal.innerHTML = `
+        <div style="background:white; padding:30px; border-radius:8px; width:300px; display:flex; flex-direction:column; gap:15px; color:black;">
+            <h3 style="margin:0;">${id ? 'Editar Lista' : 'Nueva Lista'}</h3>
+            <input id="modListName" value="${nombre}" placeholder="Nombre de la lista" style="padding:8px;">
+            <textarea id="modListDesc" placeholder="Descripción" style="padding:8px; height:60px; resize:none;">${descripcion}</textarea>
+            <div style="display:flex; justify-content:space-between; margin-top:10px;">
+                <button onclick="saveUserList(${id})" style="background:#007bff; color:white; padding:8px; border:none; border-radius:4px; cursor:pointer;">Guardar</button>
+                <button onclick="document.getElementById('customModal').remove()" style="background:#dc3545; color:white; padding:8px; border:none; border-radius:4px; cursor:pointer;">Cancelar</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+async function saveUserList(id) {
+    const nombre = document.getElementById("modListName").value.trim();
+    const descripcion = document.getElementById("modListDesc").value.trim();
+
+    if (!nombre) return alert("El nombre es obligatorio.");
+
+    const body = { nombre, descripcion };
+    let res = id ? await API.updateList(id, body) : await API.createList(body);
+
+    if (res.id || res.message) {
+        document.getElementById('customModal').remove();
+        renderLists();
+    } else {
+        alert("Error al procesar la lista");
+    }
+}
+
+async function deleteUserList(id) {
+    if (!confirm("¿Seguro que quieres borrar esta lista?")) return;
+    await API.deleteList(id);
+    renderLists();
+}
+
+function openListDetail(id, nombre) {
+    localStorage.setItem("currentListId", id);
+    localStorage.setItem("currentListName", nombre);
+    loadRoute("listaDetalle");
+}
+
+async function renderListMoviesDetail() {
+    const listId = localStorage.getItem("currentListId");
+    const movies = await API.getListMovies(listId);
+    const container = document.getElementById("listMoviesContainer");
+
+    if (!movies || movies.length === 0) {
+        container.innerHTML = "<p>No hay películas en esta lista.</p>";
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="grid">
+            ${movies.map(m => `
+                <div class="card">
+                    <h3>${m.titulo}</h3>
+                    <button onclick="removeMovieFromList(${listId}, ${m.id_pelicula})" style="background:#dc3545; color:white;">Quitar de la lista</button>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+async function showAddMovieToListForm() {
+    const movies = await API.getMovies(true);
+    const existing = document.getElementById("customModal");
+    if (existing) existing.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "customModal";
+    modal.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000;";
+
+    modal.innerHTML = `
+        <div style="background:white; padding:30px; border-radius:8px; width:300px; display:flex; flex-direction:column; gap:15px; color:black;">
+            <h3 style="margin:0;">Añadir Película</h3>
+            <select id="modListPeliSelect" style="padding:8px;">
+                ${movies.map(m => `<option value="${m.id_pelicula}">${m.titulo}</option>`).join('')}
+            </select>
+            <div style="display:flex; justify-content:space-between; margin-top:10px;">
+                <button onclick="addMovieToCurrentList()" style="background:#007bff; color:white; padding:8px; border:none; border-radius:4px; cursor:pointer;">Añadir</button>
+                <button onclick="document.getElementById('customModal').remove()" style="background:#dc3545; color:white; padding:8px; border:none; border-radius:4px; cursor:pointer;">Cancelar</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+async function addMovieToCurrentList() {
+    const listId = localStorage.getItem("currentListId");
+    const movieId = document.getElementById("modListPeliSelect").value;
+    const res = await API.addMovieToList(listId, movieId);
+
+    if (res.message) {
+        document.getElementById('customModal').remove();
+        renderListMoviesDetail();
+    } else {
+        alert(res.detail || "Error al añadir película");
+    }
+}
+
+async function removeMovieFromList(listId, movieId) {
+    await API.removeMovieFromList(listId, movieId);
+    renderListMoviesDetail();
+}
+
+// ======================
 // RESTO DEL CÓDIGO (Auth, Nav, Router)
 // ======================
 async function loginUser() {
@@ -470,6 +671,7 @@ function updateNavbar() {
         navLinks.innerHTML = `
             <li><a href="#" data-link="home">Inicio</a></li>
             <li><a href="#" data-link="catalogo">Catálogo</a></li>
+            <li><a href="#" data-link="listas">Listas</a></li>
             <li><a href="#" data-link="misVisualizaciones">Mis Visualizaciones</a></li>
             ${adminUsersLink}
             <li><a href="#" data-link="perfil">Mi perfil</a></li>
@@ -520,7 +722,7 @@ async function loadRoute(route) {
     const role = localStorage.getItem("role");
     localStorage.setItem("currentRoute", route);
 
-    const protectedRoutes = ["catalogo", "perfil", "adminUsuarios"];
+    const protectedRoutes = ["catalogo", "perfil", "adminUsuarios", "listas", "misVisualizaciones", "listaDetalle"];
 
     if (protectedRoutes.includes(route) && !token) {
         alert("Debes iniciar sesión");
@@ -554,6 +756,15 @@ async function loadRoute(route) {
     if (route === "misVisualizaciones") {
         app.innerHTML = Views.misVisualizaciones();
         setTimeout(renderViews, 100);
+    }
+    if (route === "listas") {
+        app.innerHTML = Views.listas();
+        setTimeout(renderLists, 100);
+    }
+    if (route === "listaDetalle") {
+        const nombre = localStorage.getItem("currentListName");
+        app.innerHTML = Views.listaDetalle(nombre);
+        setTimeout(renderListMoviesDetail, 100);
     }
     updateNavbar();
 }
@@ -594,42 +805,28 @@ async function renderViews() {
     `;
 }
 
-
 async function showUserViews(userId, username) {
     const views = await API.getUserViews(userId);
-
     const modal = document.createElement("div");
     modal.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000;";
-
     modal.innerHTML = `
         <div style="background:white; padding:20px; border-radius:8px; width:300px; color:black;">
             <h3>Vistas de ${username}</h3>
-
-            <ul>
-                ${views.map(m => `<li>${m.titulo}</li>`).join('')}
-            </ul>
-
+            <ul>${views.map(m => `<li>${m.titulo}</li>`).join('')}</ul>
             <button onclick="this.parentElement.parentElement.remove()">Cerrar</button>
         </div>
     `;
-
     document.body.appendChild(modal);
 }
 
 async function toggleView(id, btn) {
     btn.disabled = true;
-
     const res = await API.toggleView(id);
-
-    // Si estamos en Mis Visualizaciones → eliminar tarjeta
     if (localStorage.getItem("currentRoute") === "misVisualizaciones") {
         await renderViews();
-
         btn.disabled = false;
         return;
     }
-
-    // Si estamos en catálogo → comportamiento dinámico
     if (res.message.includes("eliminada")) {
         btn.innerText = "☆ Marcar vista";
         btn.style.background = "#ccc";
@@ -637,6 +834,5 @@ async function toggleView(id, btn) {
         btn.innerText = "★ Vista";
         btn.style.background = "#ffc107";
     }
-
     btn.disabled = false;
 }

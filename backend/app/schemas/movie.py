@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional
 
 class MovieBase(BaseModel):
     titulo: str
@@ -9,9 +10,7 @@ class MovieResponse(MovieBase):
     id_pelicula: int
 
     class Config:
-        orm_mode = True
-
-from typing import Optional
+        from_attributes = True
 
 class MovieUpdate(BaseModel):
     titulo: Optional[str] = None
