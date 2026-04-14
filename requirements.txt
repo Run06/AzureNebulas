@@ -1,5 +1,6 @@
 fastapi==0.135.3
-passlib==1.7.4 #TODO [bcrypt]==4.0.1
+passlib==1.7.4
+#Si da posible fallo, necesario -> bcrypt==4.0.1
 pydantic==2.12.5
 python-dotenv==1.2.2
 python_jose==3.3.0
