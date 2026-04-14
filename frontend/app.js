@@ -115,6 +115,18 @@ const API = {
         });
 
         return await res.json();
+    },
+
+    getUserViews: async (userId) => {
+        const token = localStorage.getItem("token");
+
+        const res = await fetch(`${API_BASE}/movies/user/${userId}/visualizaciones`, {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        return await res.json();
     }
 };
 
@@ -200,6 +212,9 @@ async function renderMovies(disponible = true) {
     const role = localStorage.getItem("role");
     const container = document.getElementById("moviesContainer");
 
+    const myViews = await API.getMyViews();
+    const viewedIds = myViews.map(v => v.id_pelicula);
+
     if (!movies || movies.length === 0) {
         container.innerHTML = "<p>No hay películas</p>";
         return;
@@ -217,8 +232,17 @@ async function renderMovies(disponible = true) {
                             Editar
                         </button>
                     ` : ``}
-                    <button onclick="toggleView(${m.id_pelicula})">
-                        ⭐ Marcar / Quitar vista
+                    <button 
+                        onclick="toggleView(${m.id_pelicula}, this)"
+                        style="
+                            background:${viewedIds.includes(m.id_pelicula) ? '#ffc107' : '#ccc'};
+                            color:black;
+                            border:none;
+                            padding:5px;
+                            cursor:pointer;
+                        "
+                    >
+                        ${viewedIds.includes(m.id_pelicula) ? '★ Vista' : '☆ Marcar vista'}
                     </button>
                 </div>
             `).join('')}
@@ -302,6 +326,9 @@ async function renderAdminUsers() {
                     <p>${u.nombre} ${u.apellidos}</p>
                     <p>${u.email}</p>
                     <button onclick="showUserForm(${u.id_usuario}, '${u.nombre}', '${u.apellidos}', '${u.nombre_usuario}', '${u.email}')">Editar Usuario</button>
+                    <button onclick="showUserViews(${u.id_usuario}, '${u.nombre_usuario}')">
+                        Ver visualizaciones
+                    </button>
                 </div>
             `).join('')}
         </div>
@@ -439,7 +466,7 @@ function updateNavbar() {
     const navLinks = document.querySelector(".nav-links");
 
     if (token) {
-        const adminUsersLink = role == 1 ? `<li><a href="#" data-link="adminUsuarios">Editar Usuarios</a></li>` : ``;
+        const adminUsersLink = role == 1 ? `<li><a href="#" data-link="adminUsuarios">Gestionar Usuarios</a></li>` : ``;
         navLinks.innerHTML = `
             <li><a href="#" data-link="home">Inicio</a></li>
             <li><a href="#" data-link="catalogo">Catálogo</a></li>
@@ -544,12 +571,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     loadRoute("home");
 });
 
-
-async function toggleView(id) {
-    const res = await API.toggleView(id);
-    alert(res.message);
-}
-
 async function renderViews() {
     const movies = await API.getMyViews();
     const container = document.getElementById("viewsContainer");
@@ -564,11 +585,58 @@ async function renderViews() {
             ${movies.map(m => `
                 <div class="card">
                     <h3>${m.titulo}</h3>
-                    <button onclick="toggleView(${m.id_pelicula})">
+                    <button onclick="toggleView(${m.id_pelicula}, this)">
                         ❌ Quitar de vistas
                     </button>
                 </div>
             `).join('')}
         </div>
     `;
+}
+
+
+async function showUserViews(userId, username) {
+    const views = await API.getUserViews(userId);
+
+    const modal = document.createElement("div");
+    modal.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000;";
+
+    modal.innerHTML = `
+        <div style="background:white; padding:20px; border-radius:8px; width:300px; color:black;">
+            <h3>Vistas de ${username}</h3>
+
+            <ul>
+                ${views.map(m => `<li>${m.titulo}</li>`).join('')}
+            </ul>
+
+            <button onclick="this.parentElement.parentElement.remove()">Cerrar</button>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+async function toggleView(id, btn) {
+    btn.disabled = true;
+
+    const res = await API.toggleView(id);
+
+    // Si estamos en Mis Visualizaciones → eliminar tarjeta
+    if (localStorage.getItem("currentRoute") === "misVisualizaciones") {
+        await renderViews();
+
+        btn.disabled = false;
+        return;
+    }
+
+    // Si estamos en catálogo → comportamiento dinámico
+    if (res.message.includes("eliminada")) {
+        btn.innerText = "☆ Marcar vista";
+        btn.style.background = "#ccc";
+    } else {
+        btn.innerText = "★ Vista";
+        btn.style.background = "#ffc107";
+    }
+
+    btn.disabled = false;
 }

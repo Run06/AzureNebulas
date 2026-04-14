@@ -123,3 +123,22 @@ def get_my_views(user=Depends(get_current_user), db: Session = Depends(get_db)):
     ).all()
 
     return views
+
+@router.get("/user/{user_id}/visualizaciones")
+def get_user_views(
+    user_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Solo admin
+    if current_user.id_tipo_usuario != 1:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+
+    views = db.query(Pelicula).join(
+        Visualizacion,
+        Visualizacion.pelicula_id == Pelicula.id_pelicula
+    ).filter(
+        Visualizacion.usuario_id == user_id
+    ).all()
+
+    return views
