@@ -91,6 +91,30 @@ const API = {
             body: JSON.stringify(data)
         });
         return await res.json();
+    },
+    toggleView: async (id) => {
+        const token = localStorage.getItem("token");
+
+        const res = await fetch(`${API_BASE}/movies/${id}/toggle-view`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        return await res.json();
+    },
+
+    getMyViews: async () => {
+        const token = localStorage.getItem("token");
+
+        const res = await fetch(`${API_BASE}/movies/mis-visualizaciones`, {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        return await res.json();
     }
 };
 
@@ -161,6 +185,10 @@ const Views = {
     adminUsuarios: () => `
         <h2>Gestión de Usuarios</h2>
         <div id="usersContainer">Cargando usuarios...</div>
+    `,
+    misVisualizaciones: () => `
+        <h2>Mis películas vistas</h2>
+        <div id="viewsContainer">Cargando...</div>
     `
 };
 
@@ -189,6 +217,9 @@ async function renderMovies(disponible = true) {
                             Editar
                         </button>
                     ` : ``}
+                    <button onclick="toggleView(${m.id_pelicula})">
+                        ⭐ Marcar / Quitar vista
+                    </button>
                 </div>
             `).join('')}
         </div>
@@ -412,6 +443,7 @@ function updateNavbar() {
         navLinks.innerHTML = `
             <li><a href="#" data-link="home">Inicio</a></li>
             <li><a href="#" data-link="catalogo">Catálogo</a></li>
+            <li><a href="#" data-link="misVisualizaciones">Mis Visualizaciones</a></li>
             ${adminUsersLink}
             <li><a href="#" data-link="perfil">Mi perfil</a></li>
             <li><a href="#" id="logoutBtn" style="color: #ff4d4d; font-weight: bold;">Logout</a></li>
@@ -492,6 +524,10 @@ async function loadRoute(route) {
         app.innerHTML = Views.adminUsuarios();
         setTimeout(renderAdminUsers, 100);
     }
+    if (route === "misVisualizaciones") {
+        app.innerHTML = Views.misVisualizaciones();
+        setTimeout(renderViews, 100);
+    }
     updateNavbar();
 }
 
@@ -507,3 +543,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     updateNavbar();
     loadRoute("home");
 });
+
+
+async function toggleView(id) {
+    const res = await API.toggleView(id);
+    alert(res.message);
+}
+
+async function renderViews() {
+    const movies = await API.getMyViews();
+    const container = document.getElementById("viewsContainer");
+
+    if (!movies.length) {
+        container.innerHTML = "<p>No has visto ninguna película</p>";
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="grid">
+            ${movies.map(m => `
+                <div class="card">
+                    <h3>${m.titulo}</h3>
+                    <button onclick="toggleView(${m.id_pelicula})">
+                        ❌ Quitar de vistas
+                    </button>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}

@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.models.movie import Pelicula
+from app.models.visualizacion import Visualizacion
+from app.utils.dependencies import get_current_user
 
 router = APIRouter(prefix="/movies")
 
@@ -90,3 +92,34 @@ def create_movie(data: MovieCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(nueva_pelicula)
     return {"message": "Película añadida", "movie": nueva_pelicula}
+
+@router.post("/{movie_id}/toggle-view")
+def toggle_view(movie_id: int, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    existing = db.query(Visualizacion).filter(
+        Visualizacion.usuario_id == user.id_usuario,
+        Visualizacion.pelicula_id == movie_id
+    ).first()
+
+    if existing:
+        db.delete(existing)
+        db.commit()
+        return {"message": "Visualización eliminada"}
+    else:
+        new_view = Visualizacion(
+            usuario_id=user.id_usuario,
+            pelicula_id=movie_id
+        )
+        db.add(new_view)
+        db.commit()
+        return {"message": "Película marcada como vista"}
+
+@router.get("/mis-visualizaciones")
+def get_my_views(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    views = db.query(Pelicula).join(
+        Visualizacion,
+        Visualizacion.pelicula_id == Pelicula.id_pelicula
+    ).filter(
+        Visualizacion.usuario_id == user.id_usuario
+    ).all()
+
+    return views
