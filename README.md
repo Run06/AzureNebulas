@@ -2,10 +2,20 @@
 Proyecto grupal para la asignatura de Gestión de Proyectos del grado en Ingeniería Informática de Gestión y Sistemas de Información en la EHU.
 
 # 1. Instalar dependencias
+git clone EnlaceDelRepositorio
+
+cd AzureNebulas
+
+python3 -m venv venv
+
+source venv/bin/activate
+
 pip install -r requirements.txt
 
 # 2. Arrancar el servidor (crea la BD automáticamente al inicio)
 #Instalar si no se tiene (pip install uvicorn)
+
+cd backend
 
 uvicorn main:app --reload
 
@@ -13,5 +23,6 @@ uvicorn main:app --reload
 http://localhost:8000/docs
 
 # 4. Abrir el frontend
-!!! Versión bcrypt (pip install bcrypt==4.0.1). Por incompatibilidad con passlib.
+!!! Versión bcrypt (pip install bcrypt==4.0.1). Por incompatibilidad con passlib. (Posible error)
+
 En PyCharm: Click derecho al fichero index.html -> Abrir con Browser (http://localhost:63342/AzureNebulas/frontend/index.html)
