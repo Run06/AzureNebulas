@@ -1,5 +1,6 @@
 # AzureNebulas
 Proyecto grupal para la asignatura de Gestión de Proyectos del grado en Ingeniería Informática de Gestión y Sistemas de Información en la EHU.
+Se exigía el desarrollo de una web mediante el uso de IA Generativa.
 
 # 1. Instalar dependencias
 git clone EnlaceDelRepositorio
